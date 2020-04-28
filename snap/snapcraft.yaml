@@ -1,0 +1,109 @@
+name: lackey
+version: '0.1'
+summary: Lackey CCG is a interface for CCG games/
+description: |
+  LackeyCCG is a tool for playing any CCG (collectible card game) online (or offline in solitaire mode).
+
+  It's also a great tool for building and designing decks. You can create your own CCG or download a plugin of an existing game and play with your friends.
+
+grade: stable
+confinement: strict
+architectures:
+  - build-on: amd64
+    run-on: [amd64, i386]
+base: core18
+
+plugs:
+  wine-runtime:
+    interface: content
+    target: $SNAP/wine-runtime
+    default-provider: wine-platform-runtime
+  wine-5-stable:
+    interface: content
+    target: $SNAP/wine-platform
+    default-provider: wine-platform-5-stable
+  gtk-3-themes:
+    default-provider: gtk-common-themes
+    interface: content
+    target: $SNAP/data-dir/themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+
+apps:
+  lackey:
+    command: |
+      bin/sommelier "$(find $WINEPREFIX/ -type f -name 'LackeyCCG.exe' 2>/dev/null)"
+    environment:
+      WINEPREFIX: "$SNAP_USER_COMMON/.wine"
+      DLLOVERRIDES: "mshtml=" # Prevent pop-ups about Wine Gecko
+      INSTALL_URL_LACKEY: "https://www.lackeyccg.com/LackeyCCGWin.zip"
+      MONO_URL: "https://dl.winehq.org/wine/wine-mono/4.7.1/wine-mono-4.7.1.msi"
+      TRICKS: "mfc40 vcrun2008"
+      VIRTDESKTOP: 0
+      LC_ALL: "C.UTF-8"
+    plugs:
+      - desktop
+      - desktop-legacy
+      - hardware-observe
+      - home
+      - joystick
+      - network
+      - network-bind
+      - opengl
+      - process-control
+      - pulseaudio
+      - wayland
+      - x11
+      - gtk-3-themes
+      - icon-themes
+      - wine-runtime
+      - wine-5-stable
+  wineboot:
+    command: bin/sommelier $SNAP/wine-platform/wine-stable/bin/wineboot
+    environment:
+      WINEPREFIX: "$SNAP_USER_COMMON/.wine"
+      DLLOVERRIDES: "mshtml=" # Prevent pop-ups about Wine Gecko
+    plugs:
+      - desktop
+      - desktop-legacy
+      - pulseaudio
+      - wayland
+      - x11
+  winecfg:
+    command: bin/sommelier $SNAP/wine-platform/wine-stable/bin/winecfg
+    environment:
+      WINEPREFIX: "$SNAP_USER_COMMON/.wine"
+      DLLOVERRIDES: "mshtml=" # Prevent pop-ups about Wine Gecko
+    plugs:
+      - desktop
+      - desktop-legacy
+      - pulseaudio
+      - wayland
+      - x11
+  winetricks:
+    command: bin/sommelier $SNAP/wine-runtime/bin/winetricks prefix="$WINEPREFIX"
+    environment:
+      WINEPREFIX: "$SNAP_USER_COMMON/.wine"
+      DLLOVERRIDES: "mshtml=" # Prevent pop-ups about Wine Gecko
+      LC_ALL: "C.UTF-8"
+    plugs:
+      - desktop
+      - desktop-legacy
+      - network
+      - pulseaudio
+      - wayland
+      - x11
+
+parts:
+  lackey:
+    plugin: dump
+    source: ./snap/local/scripts
+    override-build: |
+      snapcraftctl build
+      set -ex
+      mkdir -p $SNAPCRAFT_PART_INSTALL/wine-runtime
+      mkdir -p $SNAPCRAFT_PART_INSTALL/wine-platform
+    organize:
+      'sommelier': bin/
